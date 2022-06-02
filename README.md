@@ -1,33 +1,39 @@
 # Hybrid-model-for-FDD
 
 ## Motivation
-* When dataset freshness is critical, the annotating of high speed unlabelled data streams becomes critical but remains an open problem.
-* We propose PLStream, a novel Apache Flink-based framework for fast polarity labelling of massive data streams, like Twitter tweets or online product reviews.
-
+* Induction motors are widely used in industrial applications. However, unpredictable failures of the motors may cause high financial losses to the manufacturers and expensive repair time and energy, especially in the scenarios that require high real-time response. These failures of rolling bearings can lead to reduced performance of these machines and even accidents, resulting in extremely expensive economic losses.
+* The main objective of our work is to develop a novel FDD system with hybrid-model approach to improve the efficiency while sustaining high accuracy.
+* 
 ## Environment Requirements
 1. tensorflow 2.8
 2. Python 3.7
 
-## DataSource
-* CWRU Dataset: https://course.fast.ai/datasets#nlp
-* MFTP Dataset: https://course.fast.ai/datasets#nlp
+## Hybrid-model approach
+#### Machine Learning + Neural Network 
+* SVM/RF/KNN + CNN
+#### Machine Learning + Machine Learning
+* SVM/RF/KNN + SVM/RF/KNN
+
+## Overview
+![avatar](/overview.png)
+
+## Data Description
 ### CWRU
-* 1.6 million labeled Tweets:
-* Source:[CWRU](http://cs.stanford.edu/people/alecmgo/trainingandtestdata.zip)
+| Type     | Load 0  | Load 1  | Load 2 | Load 3  |
+| -------- | ------- | ------- | ------ | ------- |
+| Training | 1955    | 2181    | 2184   | 2187    |
+| Testing  | 501     | 559     | 560    | 561     |
+* Source:[CWRU](http://csegroups.case.edu/bearingdatacenter/home))
 ### MFTP
-* 280,000 training and 19,000 test samples in each polarity
-* Source:[MFTP](https://s3.amazonaws.com/fast-ai-nlp/yelp_review_polarity_csv.tgz)
+| Type     | Number of data |
+| -------- | -------------- |
+| Training | 4296           |
+| Testing  | 1101           |
+* Source:[MFTP](https://mfpt.org/fault-data-sets/))
 
 ## Quick Start
-quick try PLStream on yelp review dataset
-### Data Prepare
-```
-cd Hybrid-model-for-FDD
-weget https://s3.amazonaws.com/fast-ai-nlp/yelp_review_polarity_csv.tgz
-tar zxvf yelp_review_polarity_csv.tgz
-mv yelp_review_polarity_csv/train.csv train.csv
-```
-### 1. Install required environment of PLStream
+quick try Hybrid-model approach
+### 1. Run Hybrid-model approach on CWRU
 * please make sure Environment Requirements mentioned above is ready.
 ```
 python CWRU.py
