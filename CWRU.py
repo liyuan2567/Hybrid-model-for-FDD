@@ -49,17 +49,17 @@ class HybridModel():
         return rs
 
     def data_processing(self,path_data,Load,window_step):
-        # 文件夹目录
+        # filefolder directory
         path = f"{self.path_data}/{Load}"
-        # 得到文件夹下的所有文件名称
+        # all file names
         files = os.listdir(path)
-        # 初始化类别的个数
+        # initialize the number of class
         # num_class = 0
-        #初始化label的list
+        # label list initialization
         y_data = []
         target_names = []
         x_data = []
-        # 遍历文件夹
+        # folder traversal
         for file in files:
             # There are hidden .DS_Store files in each folder of MAC, which can be removed manually
             if file !=".DS_Store":
@@ -67,7 +67,7 @@ class HybridModel():
                 pd_reader = pd.read_csv(path + "/" + file)
                 pd_de = np.array(pd_reader["DE"])
                 pd_de = self.sliding_window(pd_de,3)
-                #标准化        
+                # standardlization        
                 pd_de_norm = img_as_ubyte((pd_de - min(pd_de)) / (max(pd_de) - min(pd_de)))  
                 x_data_every_class = []
                 i = 0
@@ -75,11 +75,9 @@ class HybridModel():
                 while window_step*i + (self.N*self.N) < len(pd_de_norm): 
                     x_data_every_class.append(pd_de_norm[window_step*i:window_step*i+self.N*self.N])
                     i+=1
-                # 每个类别可以生成多少张图片，在Load0,normal:59,其他都是29；load1-3，normal：118，其他都是29
+                # how many figures each class can create in Load0,normal:59,other are 29；load1-3，normal：118，others are 29
                 num_label_train = len(x_data_every_class)
                 x_data = x_data + x_data_every_class
-                #每个类别可以生成
-                # num_class += 1
 
                 if Load == 'Load_all':
                     target_names.append(os.path.basename(path + "/" + file)[:-6])
@@ -87,12 +85,12 @@ class HybridModel():
                 else:
                     target_names.append(os.path.basename(path + "/" + file)[:-4])
                     label_everycsv = [os.path.basename(path + "/" + file)[:-4]] * num_label_train
-                #做label
+                # creating the labels
                 y_data = y_data + label_everycsv
         #label string--int
         label = LabelEncoder()
         y_data_num = label.fit_transform(y_data)
-        #找int和string的对应关系,即l1和l3的对应关系
+        # map between l1 and l3 
         l1 = sorted(set(y_data),key=y_data.index)
         l2 = list(y_data_num)
         l3 = sorted(set(l2),key=l2.index)
@@ -102,7 +100,7 @@ class HybridModel():
         print(f'Load {Load} has {self.num_cla} classes.') 
         return x_data, l2, class_dic
 
-    #ml算法数据格式
+    # Machine learning algorithms
     def train_test_data(self,path_data,Load,window_step):
         x_data, y_data, class_dic = self.data_processing(path_data,Load,window_step)
         x_train_val, x_test, y_train_val, y_test = train_test_split(x_data, y_data, test_size=.17, stratify = y_data, random_state=0)
@@ -112,8 +110,8 @@ class HybridModel():
         print(f'Load {Load} has {x_test.shape[0]} {int((x_test.shape[1]) ** 0.5)}*{int((x_test.shape[1]) ** 0.5)} testing pictures.')
         return x_train_val, x_train, x_val, x_test, y_train_val, y_train, y_val, y_test
 
-    # 训练模型
-    #ml-model 训练
+    # Model training
+    # ML model training
     def Training_model_1(self,model_1, Load, x_train, y_train, x_val, y_val):
         #SVM
         start_training_model_1 = time.time()
@@ -141,7 +139,7 @@ class HybridModel():
         return t1, duration_training_model_1
 
 
-    #训练过程中用val_data筛选哪些数据要去model_2
+    # Feedback
     def Data_tomodel2(self,model_2,t1,prec_threshold,recall_threshold,x_train_val,y_train_val):
         class_notto_model2 = []
         class_list = list(t1.keys())[:self.num_cla]
@@ -155,7 +153,7 @@ class HybridModel():
             if prec >= prec_threshold and recall >= recall_threshold:
                 class_notto_model2.append(int(class_list[i]))  
       
-        #训练阶段_选出送进model2的数据
+        # choosing the data to feed model2
         pd_x_train = pd.DataFrame(x_train_val,index=y_train_val)
         pd_xy_train = pd_x_train.drop(class_notto_model2)
         x_model_2 = pd_xy_train.values
@@ -257,7 +255,7 @@ class HybridModel():
         x_test_model_2 = pd.DataFrame()
         for i in range(proba_everyclass.shape[0]):
             if max(proba_everyclass[i]) <= threshold_proba_everyclass:
-                #取出不符合条件的行
+                # find column that unsatisfied
                 x_test_model_2 = pd.concat((x_test_model_2, x_test_pd[i:i+1]), axis=0)
         x_test_model_2 = x_test_model_2.values
         print(f'There will be {x_test_model_2.shape[0]} pictures that will be fed into the deep learning model.' )
@@ -268,7 +266,7 @@ class HybridModel():
         start_test_model_2 = time.time()
         test_data = []
         if model_2 == 'NN':
-            ##黑白
+            ## grayscale
             x_test_model_2 = x_test_model_2.reshape(x_test_model_2.shape[0],self.N,self.N)
             test_out = model2.predict(x_test_model_2)
             test_out = np.argmax(test_out, axis=1)
@@ -282,7 +280,7 @@ class HybridModel():
         print('Inference time of hybrid-model :%s Seconds'%(dura_test_model_all))
         return dura_test_model_1, filter_time, dura_test_model_2, dura_test_model_all
 
-    #验证阶段：重点关注！！！精确度！！！: 打印测试集每一张图片属于每一类的概率
+    # Accuracy evaluation
     def test_hybrid_model_accuracy(self,path_model, model_1, model_2, Load, x_test, y_test, threshold_proba_everyclass):
         filename = f'{path_model}/{model_1}_{Load}.sav'
         model1 = pickle.load(open(filename, 'rb'))
@@ -303,17 +301,17 @@ class HybridModel():
         pred_test_model_1 = []
         for i in range(proba_everyclass.shape[0]):
             if max_proba_everyclass[i] <= threshold_proba_everyclass:
-                #取出不符合条件的行
-                #转去dl的数据
+              
+                # data to NN
                 x_test_model_2 = pd.concat((x_test_model_2, x_test_pd[i:i+1]), axis=0)
-                #转去dl的label
+                # label to NN
                 y_test_model_2.append(y_test[i])
             else:
-                #留在ml的数据
+                # data remain in ML
                 # x_test_ml = pd.concat((x_test_ml, x_test_pd[i:i+1]), axis=0)
-                #留在ml的label
+                # labels remain in ML
                 y_test_model_1.append(y_test[i])
-                #留在ml的预测结果
+                # prediction results remain in ML
                 pred_test_model_1.append(pre_test[i])
         x_test_model_2 = x_test_model_2.values
         y_test_model_2_counter = Counter(y_test_model_2)
@@ -331,7 +329,7 @@ class HybridModel():
         else:
             pred_test_model_2 = (model2.predict(x_test_model_2)).tolist()
 
-        #整个hybrid-model approach accurancy计算: y_test_model_2 -- pre_test_model_2 ; y_test_model_1 -- pred_test_model_1
+        #hybrid-model approach accurancy: y_test_model_2 -- pre_test_model_2 ; y_test_model_1 -- pred_test_model_1
         y_test_all = y_test_model_1 + y_test_model_2
         pred_test_all = pred_test_model_1 + pred_test_model_2
         acc_hybrid_model = accuracy_score(y_test_all, pred_test_all)
@@ -342,7 +340,7 @@ class HybridModel():
         print(f'The accurancy of the hybrid-model approach is {acc_hybrid_model}')
         return acc_hybrid_model, acc_model_1, acc_model_2
 
-    #对比实验：全量数据进入cnn
+    # Comparison Single CNN
     def NN_train(self,x_train_val, y_train_val, Load, num_cla, path_model, path_tra_His):
         x_train_val = x_train_val.reshape(x_train_val.shape[0],self.N,self.N)
         y_train_val = to_categorical(y_train_val, num_classes = num_cla)
@@ -362,7 +360,7 @@ class HybridModel():
             pickle.dump(history.history, file_pi)
         return dura_nn
 
-    # #全量数据进cnn验证--重点关注时间和精确度
+    # evaluation of CNN
     def NN_test(self,path_model, Load, x_test, y_test):
         NN_load = keras.models.load_model(f'{path_model}/NN_{Load}.h5')
         start_test = time.time()
@@ -381,33 +379,33 @@ class HybridModel():
         acc_all = []
         c = 0
         for load in self.Load:
-            # 对于每一个load，分割数据集
+            # for every load, split the dataset
             x_train_val, x_train, x_val, x_test, y_train_val, y_train, y_val, y_test = self.train_test_data(self.path_data, load, 700)
-            # 对于每一个load，获取数据分布
+            # for every load, get data distribution
             recall_threshold = self.adaptive_threshold(y_train)
             for model1 in self.model_1:
 
-              # 训练机器学习模型1
+              # model 1 training
               t1, duration_training_model_1 = self.Training_model_1(model1, load, x_train, y_train, x_val, y_val)
 
-              # 筛选出需要进下一模型的数据
+              # filter the data to feed model2
               x_model_2,y_model_2,class_notto_model2 = self.Data_tomodel2(self.model_2,t1,self.prec_threshold,recall_threshold,x_train_val,y_train_val)
 
-              # 开始训练模型2
+              # model 2 training
               duration_training_model_2 = self.Training_model_2(model1, self.model_2,load, x_train, np.array(y_train), self.num_cla, self.path_tra_His)
 
-              # 评估模型2时间
+              # prediction time of model2
               if model1 == 'rf':
                 threshold_proba_everyclass=self.probability_threshold[c]
               else:
                 threshold_proba_everyclass=self.threshold_proba_everyclass
               dura_test_model_1, filter_time, dura_test_model_2, dura_test_model_all = self.test_hybrid_model_time(self.path_model, model1, self.model_2, load, x_test, y_test, threshold_proba_everyclass)
           
-              # 评估混合模型精度
+              # hybrid-model accuracy evaluation
               acc_hybrid_model, acc_model_1, acc_model_2 = self.test_hybrid_model_accuracy(self.path_model, model1, self.model_2, load, x_test, y_test, threshold_proba_everyclass)
               duration_all.append([f'{load}+{model1}+{self.model_2}:',duration_training_model_1,duration_training_model_2,dura_test_model_1, filter_time, dura_test_model_2, dura_test_model_all])
               acc_all.append([f'{load}+{model1}+{self.model_2}:',acc_hybrid_model, acc_model_1, acc_model_2])
-            # 对于每个load训练全量CNN+评估
+            # for every load evaluate the single CNN
             dura_nn = self.NN_train(x_train_val, np.array(y_train_val), load, self.num_cla, self.path_model, self.path_tra_His)
             dura_NN_test, acc_NN = self.NN_test(self.path_model, load, x_test, y_test)
             duration_all.append((f'{load}: ', [dura_nn, dura_NN_test]))
